@@ -38,6 +38,40 @@ class OrderControllerTests {
     }
 
     @Test
+    void returnsValidationErrorForBlankCustomerName() throws Exception {
+        mockMvc.perform(post("/api/v1/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(orderRequestJson(" ", "Keyboard", 2)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.path").value("/api/v1/orders"))
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("customerName"))
+                .andExpect(jsonPath("$.fieldErrors[0].message").value("Customer name must not be blank"));
+    }
+
+    @Test
+    void returnsValidationErrorForBlankProductName() throws Exception {
+        mockMvc.perform(post("/api/v1/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(orderRequestJson("Faris", " ", 2)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("productName"))
+                .andExpect(jsonPath("$.fieldErrors[0].message").value("Product name must not be blank"));
+    }
+
+    @Test
+    void returnsValidationErrorForInvalidQuantity() throws Exception {
+        mockMvc.perform(post("/api/v1/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(orderRequestJson("Faris", "Keyboard", 0)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("quantity"))
+                .andExpect(jsonPath("$.fieldErrors[0].message").value("Quantity must be greater than zero"));
+    }
+
+    @Test
     void listsOrders() throws Exception {
         createOrder("List Customer", "List Product", 3);
 
@@ -73,6 +107,21 @@ class OrderControllerTests {
     }
 
     @Test
+    void returnsValidationErrorWhenUpdateStatusIsMissing() throws Exception {
+        long id = createOrder("Faris", "Keyboard", 1);
+
+        mockMvc.perform(put("/api/v1/orders/{id}", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(orderRequestJson("Faris", "Laptop", 5)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.path").value("/api/v1/orders/" + id))
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("status"))
+                .andExpect(jsonPath("$.fieldErrors[0].message").value("Status must not be blank"));
+    }
+
+    @Test
     void deletesAnOrder() throws Exception {
         long id = createOrder("Delete Customer", "Delete Product", 1);
 
@@ -86,7 +135,12 @@ class OrderControllerTests {
     @Test
     void returnsNotFoundForUnknownOrder() throws Exception {
         mockMvc.perform(get("/api/v1/orders/{id}", 999999L))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.error").value("Not Found"))
+                .andExpect(jsonPath("$.message").value("Order 999999 was not found"))
+                .andExpect(jsonPath("$.path").value("/api/v1/orders/999999"))
+                .andExpect(jsonPath("$.fieldErrors").isEmpty());
     }
 
     private long createOrder(String customerName, String productName, int quantity) throws Exception {

@@ -1,0 +1,117 @@
+package com.faris.enterprise_order_api.controller;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+@SpringBootTest
+@AutoConfigureMockMvc
+class OrderControllerTests {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Test
+    void createsAnOrder() throws Exception {
+        mockMvc.perform(post("/api/v1/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(orderRequestJson("Faris", "Keyboard", 2)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").isNumber())
+                .andExpect(jsonPath("$.customerName").value("Faris"))
+                .andExpect(jsonPath("$.productName").value("Keyboard"))
+                .andExpect(jsonPath("$.quantity").value(2))
+                .andExpect(jsonPath("$.status").value("CREATED"));
+    }
+
+    @Test
+    void listsOrders() throws Exception {
+        createOrder("List Customer", "List Product", 3);
+
+        mockMvc.perform(get("/api/v1/orders"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.customerName == 'List Customer')]").isNotEmpty());
+    }
+
+    @Test
+    void getsAnOrderById() throws Exception {
+        long id = createOrder("Get Customer", "Get Product", 1);
+
+        mockMvc.perform(get("/api/v1/orders/{id}", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.productName").value("Get Product"));
+    }
+
+    @Test
+    void updatesAnOrder() throws Exception {
+        long id = createOrder("Update Customer", "Original Product", 1);
+
+        mockMvc.perform(put("/api/v1/orders/{id}", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateOrderRequestJson(
+                                "Update Customer", "Updated Product", 5, "PROCESSING"
+                        )))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.productName").value("Updated Product"))
+                .andExpect(jsonPath("$.quantity").value(5))
+                .andExpect(jsonPath("$.status").value("PROCESSING"));
+    }
+
+    @Test
+    void deletesAnOrder() throws Exception {
+        long id = createOrder("Delete Customer", "Delete Product", 1);
+
+        mockMvc.perform(delete("/api/v1/orders/{id}", id))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/v1/orders/{id}", id))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void returnsNotFoundForUnknownOrder() throws Exception {
+        mockMvc.perform(get("/api/v1/orders/{id}", 999999L))
+                .andExpect(status().isNotFound());
+    }
+
+    private long createOrder(String customerName, String productName, int quantity) throws Exception {
+        String responseBody = mockMvc.perform(post("/api/v1/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(orderRequestJson(customerName, productName, quantity)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Matcher matcher = Pattern.compile("\\\"id\\\":(\\d+)").matcher(responseBody);
+        if (!matcher.find()) {
+            throw new IllegalStateException("Created order response did not include an id");
+        }
+        return Long.parseLong(matcher.group(1));
+    }
+
+    private String orderRequestJson(String customerName, String productName, int quantity) {
+        return "{\"customerName\":\"%s\",\"productName\":\"%s\",\"quantity\":%d}"
+                .formatted(customerName, productName, quantity);
+    }
+
+    private String updateOrderRequestJson(String customerName, String productName, int quantity, String status) {
+        return "{\"customerName\":\"%s\",\"productName\":\"%s\",\"quantity\":%d,\"status\":\"%s\"}"
+                .formatted(customerName, productName, quantity, status);
+    }
+}

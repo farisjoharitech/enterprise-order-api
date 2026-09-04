@@ -56,3 +56,4 @@ Thumbs.db
 # Local application configuration
 application-local.properties
 application-local.yml
+!src/main/resources/application-local.properties

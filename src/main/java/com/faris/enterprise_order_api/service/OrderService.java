@@ -31,30 +31,29 @@ public class OrderService {
     }
 
     public OrderResponse createOrder(CreateOrderRequest request) {
-        Order order = orderRepository.create(
+        Order order = new Order(
                 request.customerName(),
                 request.productName(),
-                request.quantity()
+                request.quantity(),
+                "CREATED"
         );
-        return toResponse(order);
+        return toResponse(orderRepository.save(order));
     }
 
     public OrderResponse updateOrder(Long id, UpdateOrderRequest request) {
-        findOrder(id);
-        Order updatedOrder = new Order(
-                id,
+        Order order = findOrder(id);
+        order.update(
                 request.customerName(),
                 request.productName(),
                 request.quantity(),
                 request.status()
         );
-        return toResponse(orderRepository.save(updatedOrder));
+        return toResponse(orderRepository.save(order));
     }
 
     public void deleteOrder(Long id) {
-        if (!orderRepository.deleteById(id)) {
-            throw orderNotFound(id);
-        }
+        Order order = findOrder(id);
+        orderRepository.delete(order);
     }
 
     private Order findOrder(Long id) {
@@ -68,11 +67,11 @@ public class OrderService {
 
     private OrderResponse toResponse(Order order) {
         return new OrderResponse(
-                order.id(),
-                order.customerName(),
-                order.productName(),
-                order.quantity(),
-                order.status()
+                order.getId(),
+                order.getCustomerName(),
+                order.getProductName(),
+                order.getQuantity(),
+                order.getStatus()
         );
     }
 }

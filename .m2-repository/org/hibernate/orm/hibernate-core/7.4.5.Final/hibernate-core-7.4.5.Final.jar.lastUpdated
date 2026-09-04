@@ -1,0 +1,4 @@
+#NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
+#Sat Sep 05 01:18:49 SGT 2026
+@default-central-https\://repo.maven.apache.org/maven2/.lastUpdated=1788542329607
+https\://repo.maven.apache.org/maven2/.error=Could not transfer artifact org.hibernate.orm\:hibernate-core\:jar\:7.4.5.Final from/to central (https\://repo.maven.apache.org/maven2)\: C\:\\Users\\User\\Documents\\JavaProjects\\enterprise-order-api\\.m2-repository\\org\\hibernate\\orm\\hibernate-core\\7.4.5.Final\\hibernate-core-7.4.5.Final.jar.14629481711191660310.tmp.15179551708092202032.tmp

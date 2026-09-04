@@ -4,9 +4,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -26,15 +31,23 @@ class OrderControllerTests {
 
     @Test
     void createsAnOrder() throws Exception {
-        mockMvc.perform(post("/api/v1/orders")
+        MvcResult result = mockMvc.perform(post("/api/v1/orders")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(orderRequestJson("Faris", "Keyboard", 2)))
                 .andExpect(status().isCreated())
+                .andExpect(header().exists(HttpHeaders.LOCATION))
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.customerName").value("Faris"))
                 .andExpect(jsonPath("$.productName").value("Keyboard"))
                 .andExpect(jsonPath("$.quantity").value(2))
-                .andExpect(jsonPath("$.status").value("CREATED"));
+                .andExpect(jsonPath("$.status").value("CREATED"))
+                .andReturn();
+
+        long id = orderIdFrom(result);
+        assertEquals(
+                "http://localhost/api/v1/orders/" + id,
+                result.getResponse().getHeader(HttpHeaders.LOCATION)
+        );
     }
 
     @Test
@@ -126,7 +139,8 @@ class OrderControllerTests {
         long id = createOrder("Delete Customer", "Delete Product", 1);
 
         mockMvc.perform(delete("/api/v1/orders/{id}", id))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isNoContent())
+                .andExpect(content().string(""));
 
         mockMvc.perform(get("/api/v1/orders/{id}", id))
                 .andExpect(status().isNotFound());
@@ -144,14 +158,18 @@ class OrderControllerTests {
     }
 
     private long createOrder(String customerName, String productName, int quantity) throws Exception {
-        String responseBody = mockMvc.perform(post("/api/v1/orders")
+        MvcResult result = mockMvc.perform(post("/api/v1/orders")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(orderRequestJson(customerName, productName, quantity)))
                 .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+                .andExpect(header().exists(HttpHeaders.LOCATION))
+                .andReturn();
 
+        return orderIdFrom(result);
+    }
+
+    private long orderIdFrom(MvcResult result) throws Exception {
+        String responseBody = result.getResponse().getContentAsString();
         Matcher matcher = Pattern.compile("\\\"id\\\":(\\d+)").matcher(responseBody);
         if (!matcher.find()) {
             throw new IllegalStateException("Created order response did not include an id");

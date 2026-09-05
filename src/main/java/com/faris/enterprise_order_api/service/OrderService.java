@@ -9,6 +9,7 @@ import com.faris.enterprise_order_api.repository.CustomerRepository;
 import com.faris.enterprise_order_api.repository.OrderRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
@@ -24,16 +25,19 @@ public class OrderService {
         this.customerRepository = customerRepository;
     }
 
+    @Transactional(readOnly = true)
     public List<OrderResponse> getAllOrders() {
         return orderRepository.findAll().stream()
                 .map(this::toResponse)
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public OrderResponse getOrderById(Long id) {
         return toResponse(findOrder(id));
     }
 
+    @Transactional
     public OrderResponse createOrder(CreateOrderRequest request) {
         Customer customer = findCustomer(request.customerId());
         Order order = new Order(
@@ -45,6 +49,7 @@ public class OrderService {
         return toResponse(orderRepository.save(order));
     }
 
+    @Transactional
     public OrderResponse updateOrder(Long id, UpdateOrderRequest request) {
         Order order = findOrder(id);
         Customer customer = findCustomer(request.customerId());
@@ -57,6 +62,7 @@ public class OrderService {
         return toResponse(orderRepository.save(order));
     }
 
+    @Transactional
     public void deleteOrder(Long id) {
         Order order = findOrder(id);
         orderRepository.delete(order);

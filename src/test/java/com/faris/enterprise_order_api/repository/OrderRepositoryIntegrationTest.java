@@ -1,5 +1,6 @@
 package com.faris.enterprise_order_api.repository;
 
+import com.faris.enterprise_order_api.model.Customer;
 import com.faris.enterprise_order_api.model.Order;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,16 +41,21 @@ class OrderRepositoryIntegrationTest {
     private OrderRepository orderRepository;
 
     @Autowired
+    private CustomerRepository customerRepository;
+
+    @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @BeforeEach
     void cleanDatabase() {
         orderRepository.deleteAll();
+        customerRepository.deleteAll();
     }
 
     @Test
     void savesRetrievesUpdatesAndDeletesAnOrderInPostgreSql() {
-        Order savedOrder = orderRepository.saveAndFlush(new Order("Faris", "Keyboard", 2, "CREATED"));
+        Customer customer = customerRepository.saveAndFlush(new Customer("Faris", "faris@example.com"));
+        Order savedOrder = orderRepository.saveAndFlush(new Order(customer, "Keyboard", 2, "CREATED"));
 
         assertNotNull(savedOrder.getId());
         Integer persistedRows = jdbcTemplate.queryForObject(
@@ -61,7 +67,7 @@ class OrderRepositoryIntegrationTest {
         assertTrue(retrievedOrder.isPresent());
         assertEquals("Keyboard", retrievedOrder.get().getProductName());
 
-        retrievedOrder.get().update("Faris", "Mouse", 1, "PROCESSING");
+        retrievedOrder.get().update(customer, "Mouse", 1, "PROCESSING");
         Order updatedOrder = orderRepository.saveAndFlush(retrievedOrder.get());
         assertEquals("Mouse", updatedOrder.getProductName());
         assertEquals("PROCESSING", updatedOrder.getStatus());

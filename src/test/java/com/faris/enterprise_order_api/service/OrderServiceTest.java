@@ -3,7 +3,9 @@ package com.faris.enterprise_order_api.service;
 import com.faris.enterprise_order_api.dto.CreateOrderRequest;
 import com.faris.enterprise_order_api.dto.OrderResponse;
 import com.faris.enterprise_order_api.dto.UpdateOrderRequest;
+import com.faris.enterprise_order_api.model.Customer;
 import com.faris.enterprise_order_api.model.Order;
+import com.faris.enterprise_order_api.repository.CustomerRepository;
 import com.faris.enterprise_order_api.repository.OrderRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,21 +31,28 @@ class OrderServiceTest {
     @Mock
     private OrderRepository orderRepository;
 
+    @Mock
+    private CustomerRepository customerRepository;
+
     private OrderService orderService;
 
     @BeforeEach
     void setUp() {
-        orderService = new OrderService(orderRepository);
+        orderService = new OrderService(orderRepository, customerRepository);
     }
 
     @Test
     void createsAnOrderWithCreatedStatus() {
+        Customer customer = new Customer("Faris", "faris@example.com");
+        customer.setId(1L);
+        when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         OrderResponse createdOrder = orderService.createOrder(
-                new CreateOrderRequest("Faris", "Keyboard", 2)
+                new CreateOrderRequest(1L, "Keyboard", 2)
         );
 
+        assertEquals(1L, createdOrder.customerId());
         assertEquals("Faris", createdOrder.customerName());
         assertEquals("Keyboard", createdOrder.productName());
         assertEquals(2, createdOrder.quantity());
@@ -53,13 +62,18 @@ class OrderServiceTest {
 
     @Test
     void updatesAnExistingOrder() {
-        Order order = new Order("Faris", "Keyboard", 2, "CREATED");
+        Customer customer = new Customer("Faris", "faris@example.com");
+        customer.setId(1L);
+        Order order = new Order(customer, "Keyboard", 2, "CREATED");
+        order.setId(1L);
+        
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         OrderResponse updatedOrder = orderService.updateOrder(
                 1L,
-                new UpdateOrderRequest("Faris", "Mouse", 1, "PROCESSING")
+                new UpdateOrderRequest(1L, "Mouse", 1, "PROCESSING")
         );
 
         assertEquals("Mouse", updatedOrder.productName());
@@ -80,8 +94,22 @@ class OrderServiceTest {
     }
 
     @Test
+    void throwsNotFoundWhenCustomerDoesNotExist() {
+        when(customerRepository.findById(999L)).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> orderService.createOrder(new CreateOrderRequest(999L, "Keyboard", 2))
+        );
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+    }
+
+    @Test
     void deletesAnExistingOrder() {
-        Order order = new Order("Faris", "Keyboard", 2, "CREATED");
+        Customer customer = new Customer("Faris", "faris@example.com");
+        customer.setId(1L);
+        Order order = new Order(customer, "Keyboard", 2, "CREATED");
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
 
         orderService.deleteOrder(1L);

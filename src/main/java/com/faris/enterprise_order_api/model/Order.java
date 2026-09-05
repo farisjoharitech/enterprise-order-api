@@ -2,9 +2,12 @@ package com.faris.enterprise_order_api.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
@@ -15,7 +18,11 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "customer_name", nullable = false, length = 100)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_id", nullable = false)
+    private Customer customer;
+
+    @Column(name = "customer_name", nullable = true, length = 100)
     private String customerName;
 
     @Column(name = "product_name", nullable = false, length = 100)
@@ -30,8 +37,9 @@ public class Order {
     protected Order() {
     }
 
-    public Order(String customerName, String productName, int quantity, String status) {
-        this.customerName = customerName;
+    public Order(Customer customer, String productName, int quantity, String status) {
+        this.customer = customer;
+        this.customerName = customer != null ? customer.getName() : null;
         this.productName = productName;
         this.quantity = quantity;
         this.status = status;
@@ -39,6 +47,14 @@ public class Order {
 
     public Long getId() {
         return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Customer getCustomer() {
+        return customer;
     }
 
     public String getCustomerName() {
@@ -57,8 +73,9 @@ public class Order {
         return status;
     }
 
-    public void update(String customerName, String productName, int quantity, String status) {
-        this.customerName = customerName;
+    public void update(Customer customer, String productName, int quantity, String status) {
+        this.customer = customer;
+        this.customerName = customer != null ? customer.getName() : null;
         this.productName = productName;
         this.quantity = quantity;
         this.status = status;

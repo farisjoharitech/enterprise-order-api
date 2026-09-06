@@ -37,6 +37,14 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
+    public List<OrderResponse> getOrdersWithCustomers() {
+        return orderRepository.findAllWithCustomer()
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public OrderPageResponse searchOrders(
             String status,
             Long customerId,

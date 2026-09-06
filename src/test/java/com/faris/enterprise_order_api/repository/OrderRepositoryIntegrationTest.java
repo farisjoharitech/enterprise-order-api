@@ -14,6 +14,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -197,5 +198,35 @@ class OrderRepositoryIntegrationTest {
         assertEquals(2, result.getContent().size());
         assertTrue(result.isFirst());
         assertFalse(result.isLast());
+    }
+
+    @Test
+    void findsOrdersWithCustomersUsingFetchJoin() {
+        Customer customer = customerRepository.saveAndFlush(
+                new Customer(
+                        "Fetch Customer",
+                        "fetch-" + System.nanoTime() + "@example.com"
+                )
+        );
+
+        Order order = orderRepository.saveAndFlush(
+                new Order(
+                        customer,
+                        "Fetch Product",
+                        2,
+                        "CREATED"
+                )
+        );
+
+        List<Order> result = orderRepository.findAllWithCustomer();
+
+        assertFalse(result.isEmpty());
+
+        Order found = result.stream()
+                .filter(item -> item.getId().equals(order.getId()))
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals("Fetch Customer", found.getCustomer().getName());
     }
 }

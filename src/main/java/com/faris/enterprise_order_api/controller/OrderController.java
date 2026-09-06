@@ -52,6 +52,11 @@ public class OrderController {
         return orderService.searchOrders(status, customerId, pageable);
     }
 
+    @GetMapping("/with-customers")
+    public List<OrderResponse> getOrdersWithCustomers() {
+        return orderService.getOrdersWithCustomers();
+    }
+
     @GetMapping("/{id}")
     public OrderResponse getOrderById(@PathVariable Long id) {
         return orderService.getOrderById(id);

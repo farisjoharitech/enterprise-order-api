@@ -232,4 +232,35 @@ class OrderServiceTest {
 
         verify(orderRepository).findAll(pageable);
     }
+
+    @Test
+    void getsOrdersWithCustomers() {
+        Customer customer = new Customer(
+                "Service Fetch Customer",
+                "service-fetch@example.com"
+        );
+        customer.setId(1L);
+
+        Order order = new Order(
+                customer,
+                "Service Fetch Product",
+                1,
+                "CREATED"
+        );
+        order.setId(1L);
+
+        when(orderRepository.findAllWithCustomer())
+                .thenReturn(List.of(order));
+
+        List<OrderResponse> result =
+                orderService.getOrdersWithCustomers();
+
+        assertEquals(1, result.size());
+        assertEquals(
+                "Service Fetch Customer",
+                result.get(0).customerName()
+        );
+
+        verify(orderRepository).findAllWithCustomer();
+    }
 }

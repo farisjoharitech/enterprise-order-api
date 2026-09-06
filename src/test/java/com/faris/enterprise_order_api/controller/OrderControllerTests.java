@@ -441,4 +441,28 @@ class OrderControllerTests {
         return "{\"customerId\":%d,\"productName\":\"%s\",\"quantity\":%d,\"status\":\"%s\"}"
                 .formatted(customerId, productName, quantity, status);
     }
+
+    @Test
+    void getsOrdersWithCustomers() throws Exception {
+        Customer customer = customerRepository.save(
+                new Customer(
+                        "Controller Fetch Customer",
+                        "controller-fetch-" + UUID.randomUUID() + "@example.com"
+                )
+        );
+
+        createOrder(
+                customer.getId(),
+                "Controller Fetch Product",
+                2
+        );
+
+        mockMvc.perform(
+                        get("/api/v1/orders/with-customers")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath(
+                        "$[?(@.customerName == 'Controller Fetch Customer' && @.productName == 'Controller Fetch Product')]"
+                ).isNotEmpty());
+    }
 }

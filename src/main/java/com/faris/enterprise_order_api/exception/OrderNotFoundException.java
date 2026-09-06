@@ -1,0 +1,7 @@
+package com.faris.enterprise_order_api.exception;
+
+public class OrderNotFoundException extends RuntimeException {
+    public OrderNotFoundException(Long id) {
+        super("Order " + id + " was not found");
+    }
+}

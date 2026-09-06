@@ -3,6 +3,7 @@ package com.faris.enterprise_order_api.service;
 import com.faris.enterprise_order_api.dto.CreateOrderRequest;
 import com.faris.enterprise_order_api.dto.OrderResponse;
 import com.faris.enterprise_order_api.dto.UpdateOrderRequest;
+import com.faris.enterprise_order_api.exception.OrderNotFoundException;
 import com.faris.enterprise_order_api.model.Customer;
 import com.faris.enterprise_order_api.model.Order;
 import com.faris.enterprise_order_api.repository.CustomerRepository;
@@ -70,16 +71,12 @@ public class OrderService {
 
     private Order findOrder(Long id) {
         return orderRepository.findById(id)
-                .orElseThrow(() -> orderNotFound(id));
+                .orElseThrow(() -> new OrderNotFoundException(id));
     }
 
     private Customer findCustomer(Long id) {
         return customerRepository.findById(id)
                 .orElseThrow(() -> customerNotFound(id));
-    }
-
-    private ResponseStatusException orderNotFound(Long id) {
-        return new ResponseStatusException(HttpStatus.NOT_FOUND, "Order " + id + " was not found");
     }
 
     private ResponseStatusException customerNotFound(Long id) {

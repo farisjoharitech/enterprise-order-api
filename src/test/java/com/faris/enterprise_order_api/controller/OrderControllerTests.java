@@ -201,6 +201,43 @@ class OrderControllerTests {
                 .andExpect(jsonPath("$.fieldErrors").isEmpty());
     }
 
+    @Test
+    void getExistingOrderReturns200() throws Exception {
+        Customer customer = customerRepository.save(new Customer("Test Customer", "get-existing-" + UUID.randomUUID() + "@example.com"));
+        long id = createOrder(customer.getId(), "Test Product", 5);
+
+        mockMvc.perform(get("/api/v1/orders/{id}", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.customerId").value(customer.getId().intValue()))
+                .andExpect(jsonPath("$.customerName").value("Test Customer"))
+                .andExpect(jsonPath("$.productName").value("Test Product"))
+                .andExpect(jsonPath("$.quantity").value(5));
+    }
+
+    @Test
+    void getMissingOrderReturns404WithErrorStructure() throws Exception {
+        mockMvc.perform(get("/api/v1/orders/{id}", 888888L))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.error").value("Not Found"))
+                .andExpect(jsonPath("$.message").value("Order 888888 was not found"))
+                .andExpect(jsonPath("$.fieldErrors").isEmpty());
+    }
+
+    @Test
+    void postInvalidRequestReturns400WithValidationError() throws Exception {
+        mockMvc.perform(post("/api/v1/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"productName\":\"Product\",\"quantity\":1}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("customerId"))
+                .andExpect(jsonPath("$.fieldErrors[0].message").value("Customer ID must not be null"));
+    }
+
     private long createOrder(Long customerId, String productName, int quantity) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/v1/orders")
                         .contentType(MediaType.APPLICATION_JSON)

@@ -3,6 +3,7 @@ package com.faris.enterprise_order_api.service;
 import com.faris.enterprise_order_api.dto.CreateOrderRequest;
 import com.faris.enterprise_order_api.dto.OrderResponse;
 import com.faris.enterprise_order_api.dto.UpdateOrderRequest;
+import com.faris.enterprise_order_api.exception.OrderNotFoundException;
 import com.faris.enterprise_order_api.model.Customer;
 import com.faris.enterprise_order_api.model.Order;
 import com.faris.enterprise_order_api.repository.CustomerRepository;
@@ -85,12 +86,12 @@ class OrderServiceTest {
     void throwsNotFoundWhenOrderDoesNotExist() {
         when(orderRepository.findById(999L)).thenReturn(Optional.empty());
 
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
+        OrderNotFoundException exception = assertThrows(
+                OrderNotFoundException.class,
                 () -> orderService.getOrderById(999L)
         );
 
-        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertEquals("Order 999 was not found", exception.getMessage());
     }
 
     @Test

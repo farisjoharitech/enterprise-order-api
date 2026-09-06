@@ -12,6 +12,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import com.faris.enterprise_order_api.dto.OrderPageResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -31,6 +34,47 @@ public class OrderService {
         return orderRepository.findAll().stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public OrderPageResponse searchOrders(
+            String status,
+            Long customerId,
+            Pageable pageable
+    ) {
+        Page<Order> orders;
+
+        if (customerId != null && status != null) {
+            orders = orderRepository.findByCustomer_IdAndStatus(
+                    customerId,
+                    status,
+                    pageable
+            );
+        } else if (customerId != null) {
+            orders = orderRepository.findByCustomer_Id(
+                    customerId,
+                    pageable
+            );
+        } else if (status != null) {
+            orders = orderRepository.findByStatus(
+                    status,
+                    pageable
+            );
+        } else {
+            orders = orderRepository.findAll(pageable);
+        }
+
+        return new OrderPageResponse(
+                orders.getContent().stream()
+                        .map(this::toResponse)
+                        .toList(),
+                orders.getNumber(),
+                orders.getSize(),
+                orders.getTotalElements(),
+                orders.getTotalPages(),
+                orders.isFirst(),
+                orders.isLast()
+        );
     }
 
     @Transactional(readOnly = true)

@@ -15,6 +15,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import com.faris.enterprise_order_api.dto.OrderPageResponse;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.net.URI;
 import java.util.List;
@@ -32,6 +37,19 @@ public class OrderController {
     @GetMapping
     public List<OrderResponse> getAllOrders() {
         return orderService.getAllOrders();
+    }
+
+    @GetMapping("/search")
+    public OrderPageResponse searchOrders(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long customerId,
+            @PageableDefault(
+                    size = 20,
+                    sort = "id",
+                    direction = Sort.Direction.DESC
+            ) Pageable pageable
+    ) {
+        return orderService.searchOrders(status, customerId, pageable);
     }
 
     @GetMapping("/{id}")

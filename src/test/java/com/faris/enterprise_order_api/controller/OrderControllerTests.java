@@ -134,6 +134,127 @@ class OrderControllerTests {
     }
 
     @Test
+    void searchesOrdersByStatus() throws Exception {
+        Customer customer = customerRepository.save(
+                new Customer(
+                        "Search Status Customer",
+                        "search-status-" + UUID.randomUUID() + "@example.com"
+                )
+        );
+
+        createOrder(customer.getId(), "Created Product", 2);
+
+        mockMvc.perform(get("/api/v1/orders/search")
+                        .param("customerId", customer.getId().toString())
+                        .param("status", "CREATED")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content[0].customerName")
+                        .value("Search Status Customer"))
+                .andExpect(jsonPath("$.content[0].status")
+                        .value("CREATED"))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(10))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.totalPages").value(1));
+    }
+
+    @Test
+    void searchesOrdersByCustomerId() throws Exception {
+        Customer customer = customerRepository.save(
+                new Customer(
+                        "Search Customer",
+                        "search-customer-" + UUID.randomUUID() + "@example.com"
+                )
+        );
+
+        createOrder(customer.getId(), "Search Product", 2);
+
+        mockMvc.perform(get("/api/v1/orders/search")
+                        .param("customerId", customer.getId().toString())
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content[0].customerId")
+                        .value(customer.getId().intValue()))
+                .andExpect(jsonPath("$.content[0].productName")
+                        .value("Search Product"))
+                .andExpect(jsonPath("$.totalElements").value(1));
+    }
+
+    @Test
+    void searchesOrdersByCustomerIdAndStatus() throws Exception {
+        Customer customer = customerRepository.save(
+                new Customer(
+                        "Combined Search Customer",
+                        "combined-search-" + UUID.randomUUID() + "@example.com"
+                )
+        );
+
+        createOrder(customer.getId(), "Combined Product", 2);
+
+        mockMvc.perform(get("/api/v1/orders/search")
+                        .param("customerId", customer.getId().toString())
+                        .param("status", "CREATED")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content[0].productName")
+                        .value("Combined Product"))
+                .andExpect(jsonPath("$.content[0].status")
+                        .value("CREATED"))
+                .andExpect(jsonPath("$.totalElements").value(1));
+    }
+
+    @Test
+    void returnsEmptyPageWhenSearchFindsNoOrders() throws Exception {
+        mockMvc.perform(get("/api/v1/orders/search")
+                        .param("customerId", "999999999")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isEmpty())
+                .andExpect(jsonPath("$.totalElements").value(0))
+                .andExpect(jsonPath("$.totalPages").value(0))
+                .andExpect(jsonPath("$.first").value(true))
+                .andExpect(jsonPath("$.last").value(true));
+    }
+
+    @Test
+    void searchesOrdersWithPagination() throws Exception {
+        Customer customer = customerRepository.save(
+                new Customer(
+                        "Pagination API Customer",
+                        "pagination-api-" + UUID.randomUUID() + "@example.com"
+                )
+        );
+
+        for (int i = 1; i <= 3; i++) {
+            createOrder(customer.getId(), "Pagination Product " + i, i);
+        }
+
+        mockMvc.perform(get("/api/v1/orders/search")
+                        .param("customerId", customer.getId().toString())
+                        .param("page", "0")
+                        .param("size", "2")
+                        .param("sort", "id,asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(2))
+                .andExpect(jsonPath("$.totalElements").value(3))
+                .andExpect(jsonPath("$.totalPages").value(2))
+                .andExpect(jsonPath("$.first").value(true))
+                .andExpect(jsonPath("$.last").value(false));
+    }
+
+
+
+    @Test
     void getsAnOrderById() throws Exception {
         Customer customer = customerRepository.save(new Customer("Get Customer", "get-" + UUID.randomUUID() + "@example.com"));
         long id = createOrder(customer.getId(), "Get Product", 1);

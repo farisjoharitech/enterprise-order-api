@@ -21,6 +21,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers(disabledWithoutDocker = true)
@@ -75,5 +80,122 @@ class OrderRepositoryIntegrationTest {
         orderRepository.delete(updatedOrder);
         orderRepository.flush();
         assertFalse(orderRepository.existsById(savedOrder.getId()));
+    }
+
+    @Test
+    void findsOrdersByStatusWithPaginationAndSorting() {
+        Customer customer = customerRepository.saveAndFlush(
+                new Customer("Query Customer", "query-" + System.nanoTime() + "@example.com")
+        );
+
+        orderRepository.saveAndFlush(
+                new Order(customer, "Keyboard", 2, "CREATED")
+        );
+
+        orderRepository.saveAndFlush(
+                new Order(customer, "Mouse", 1, "PROCESSING")
+        );
+
+        orderRepository.saveAndFlush(
+                new Order(customer, "Monitor", 1, "CREATED")
+        );
+
+        Pageable pageable = PageRequest.of(
+                0,
+                10,
+                Sort.by(Sort.Direction.DESC, "id")
+        );
+
+        Page<Order> result = orderRepository.findByStatus(
+                "CREATED",
+                pageable
+        );
+
+        assertEquals(2, result.getTotalElements());
+        assertEquals(2, result.getContent().size());
+        assertEquals("Monitor", result.getContent().get(0).getProductName());
+    }
+
+    @Test
+    void findsOrdersByCustomerId() {
+        Customer firstCustomer = customerRepository.saveAndFlush(
+                new Customer("Customer One", "customer-one-" + System.nanoTime() + "@example.com")
+        );
+
+        Customer secondCustomer = customerRepository.saveAndFlush(
+                new Customer("Customer Two", "customer-two-" + System.nanoTime() + "@example.com")
+        );
+
+        orderRepository.saveAndFlush(
+                new Order(firstCustomer, "Keyboard", 2, "CREATED")
+        );
+
+        orderRepository.saveAndFlush(
+                new Order(secondCustomer, "Mouse", 1, "CREATED")
+        );
+
+        Pageable pageable = PageRequest.of(0, 10);
+
+        Page<Order> result = orderRepository.findByCustomer_Id(
+                firstCustomer.getId(),
+                pageable
+        );
+
+        assertEquals(1, result.getTotalElements());
+        assertEquals("Keyboard", result.getContent().get(0).getProductName());
+    }
+
+    @Test
+    void findsOrdersByCustomerIdAndStatus() {
+        Customer customer = customerRepository.saveAndFlush(
+                new Customer("Combined Customer", "combined-" + System.nanoTime() + "@example.com")
+        );
+
+        orderRepository.saveAndFlush(
+                new Order(customer, "Keyboard", 2, "CREATED")
+        );
+
+        orderRepository.saveAndFlush(
+                new Order(customer, "Mouse", 1, "PROCESSING")
+        );
+
+        Pageable pageable = PageRequest.of(0, 10);
+
+        Page<Order> result =
+                orderRepository.findByCustomer_IdAndStatus(
+                        customer.getId(),
+                        "PROCESSING",
+                        pageable
+                );
+
+        assertEquals(1, result.getTotalElements());
+        assertEquals("Mouse", result.getContent().get(0).getProductName());
+    }
+
+    @Test
+    void paginatesOrders() {
+        Customer customer = customerRepository.saveAndFlush(
+                new Customer("Pagination Customer", "pagination-" + System.nanoTime() + "@example.com")
+        );
+
+        for (int i = 1; i <= 5; i++) {
+            orderRepository.saveAndFlush(
+                    new Order(customer, "Product " + i, i, "CREATED")
+            );
+        }
+
+        Pageable pageable = PageRequest.of(
+                0,
+                2,
+                Sort.by(Sort.Direction.ASC, "id")
+        );
+
+        Page<Order> result = orderRepository.findAll(pageable);
+
+        assertEquals(5, result.getTotalElements());
+        assertEquals(3, result.getTotalPages());
+        assertEquals(2, result.getContent().size());
+        assertTrue(result.isFirst());
+        assertFalse(result.isLast());
     }
 }

@@ -1,6 +1,7 @@
 package com.faris.enterprise_order_api.service;
 
 import com.faris.enterprise_order_api.dto.CreateOrderRequest;
+import com.faris.enterprise_order_api.dto.OrderPageResponse;
 import com.faris.enterprise_order_api.dto.OrderResponse;
 import com.faris.enterprise_order_api.dto.UpdateOrderRequest;
 import com.faris.enterprise_order_api.exception.OrderNotFoundException;
@@ -25,6 +26,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
+import java.util.List;
 
 @ExtendWith(MockitoExtension.class)
 class OrderServiceTest {
@@ -116,5 +123,113 @@ class OrderServiceTest {
         orderService.deleteOrder(1L);
 
         verify(orderRepository).delete(order);
+    }
+
+    @Test
+    void searchesOrdersByStatus() {
+        Customer customer = new Customer("Faris", "search@example.com");
+        customer.setId(1L);
+
+        Order order = new Order(customer, "Keyboard", 2, "CREATED");
+        order.setId(1L);
+
+        Pageable pageable = PageRequest.of(0, 10);
+
+        when(orderRepository.findByStatus("CREATED", pageable))
+                .thenReturn(new PageImpl<>(List.of(order), pageable, 1));
+
+        OrderPageResponse result = orderService.searchOrders(
+                "CREATED",
+                null,
+                pageable
+        );
+
+        assertEquals(1, result.totalElements());
+        assertEquals(1, result.content().size());
+        assertEquals("Keyboard", result.content().get(0).productName());
+
+        verify(orderRepository).findByStatus("CREATED", pageable);
+    }
+
+    @Test
+    void searchesOrdersByCustomerId() {
+        Customer customer = new Customer("Faris", "customer-search@example.com");
+        customer.setId(1L);
+
+        Order order = new Order(customer, "Mouse", 1, "CREATED");
+        order.setId(1L);
+
+        Pageable pageable = PageRequest.of(0, 10);
+
+        when(orderRepository.findByCustomer_Id(1L, pageable))
+                .thenReturn(new PageImpl<>(List.of(order), pageable, 1));
+
+        OrderPageResponse result = orderService.searchOrders(
+                null,
+                1L,
+                pageable
+        );
+
+        assertEquals(1, result.totalElements());
+        assertEquals("Mouse", result.content().get(0).productName());
+
+        verify(orderRepository).findByCustomer_Id(1L, pageable);
+    }
+
+    @Test
+    void searchesOrdersByCustomerIdAndStatus() {
+        Customer customer = new Customer("Faris", "combined-search@example.com");
+        customer.setId(1L);
+
+        Order order = new Order(customer, "Monitor", 1, "PROCESSING");
+        order.setId(1L);
+
+        Pageable pageable = PageRequest.of(0, 10);
+
+        when(orderRepository.findByCustomer_IdAndStatus(
+                1L,
+                "PROCESSING",
+                pageable
+        )).thenReturn(new PageImpl<>(List.of(order), pageable, 1));
+
+        OrderPageResponse result = orderService.searchOrders(
+                "PROCESSING",
+                1L,
+                pageable
+        );
+
+        assertEquals(1, result.totalElements());
+        assertEquals("PROCESSING", result.content().get(0).status());
+
+        verify(orderRepository).findByCustomer_IdAndStatus(
+                1L,
+                "PROCESSING",
+                pageable
+        );
+    }
+
+    @Test
+    void searchesAllOrdersWhenNoFiltersAreProvided() {
+        Customer customer = new Customer("Faris", "all-search@example.com");
+        customer.setId(1L);
+
+        Order order = new Order(customer, "Laptop", 1, "CREATED");
+        order.setId(1L);
+
+        Pageable pageable = PageRequest.of(0, 10);
+
+        when(orderRepository.findAll(pageable))
+                .thenReturn(new PageImpl<>(List.of(order), pageable, 1));
+
+        OrderPageResponse result = orderService.searchOrders(
+                null,
+                null,
+                pageable
+        );
+
+        assertEquals(1, result.totalElements());
+        assertEquals("Laptop", result.content().get(0).productName());
+
+        verify(orderRepository).findAll(pageable);
     }
 }

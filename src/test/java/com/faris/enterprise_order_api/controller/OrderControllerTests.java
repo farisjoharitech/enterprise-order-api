@@ -238,6 +238,59 @@ class OrderControllerTests {
                 .andExpect(jsonPath("$.fieldErrors[0].message").value("Customer ID must not be null"));
     }
 
+    @Test
+    void getOrderResponseContainsOnlyDTOFields() throws Exception {
+        Customer customer = customerRepository.save(new Customer("DTO Test", "dto-test-" + UUID.randomUUID() + "@example.com"));
+        long id = createOrder(customer.getId(), "DTO Product", 3);
+
+        mockMvc.perform(get("/api/v1/orders/{id}", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").exists())
+                .andExpect(jsonPath("$.customerId").exists())
+                .andExpect(jsonPath("$.customerName").exists())
+                .andExpect(jsonPath("$.productName").exists())
+                .andExpect(jsonPath("$.quantity").exists())
+                .andExpect(jsonPath("$.status").exists())
+                .andExpect(jsonPath("$.customer").doesNotExist())
+                .andExpect(jsonPath("$.id").isNumber())
+                .andExpect(jsonPath("$.customerId").isNumber());
+    }
+
+    @Test
+    void postOrderResponseContainsOnlyDTOFields() throws Exception {
+        Customer customer = customerRepository.save(new Customer("POST DTO", "post-dto-" + UUID.randomUUID() + "@example.com"));
+
+        mockMvc.perform(post("/api/v1/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(orderRequestJson(customer.getId(), "POST DTO Product", 2)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").isNumber())
+                .andExpect(jsonPath("$.customerId").value(customer.getId().intValue()))
+                .andExpect(jsonPath("$.customerName").value("POST DTO"))
+                .andExpect(jsonPath("$.productName").value("POST DTO Product"))
+                .andExpect(jsonPath("$.quantity").value(2))
+                .andExpect(jsonPath("$.status").value("CREATED"))
+                .andExpect(jsonPath("$.customer").doesNotExist())
+                .andExpect(jsonPath("$.customerName").isString());
+    }
+
+    @Test
+    void getOrdersListReturnsOrderResponseDTOs() throws Exception {
+        Customer customer = customerRepository.save(new Customer("List DTO", "list-dto-" + UUID.randomUUID() + "@example.com"));
+        createOrder(customer.getId(), "List Product 1", 1);
+        createOrder(customer.getId(), "List Product 2", 2);
+
+        mockMvc.perform(get("/api/v1/orders"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$[0].id").isNumber())
+                .andExpect(jsonPath("$[0].customerId").isNumber())
+                .andExpect(jsonPath("$[0].customerName").isString())
+                .andExpect(jsonPath("$[0].productName").isString())
+                .andExpect(jsonPath("$[0].customer").doesNotExist())
+                .andExpect(jsonPath("$[0].customerName").exists());
+    }
+
     private long createOrder(Long customerId, String productName, int quantity) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/v1/orders")
                         .contentType(MediaType.APPLICATION_JSON)

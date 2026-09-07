@@ -12,12 +12,18 @@ import com.faris.enterprise_order_api.repository.OrderRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -26,12 +32,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-
-import java.util.List;
 
 @ExtendWith(MockitoExtension.class)
 class OrderServiceTest {
@@ -46,191 +46,435 @@ class OrderServiceTest {
 
     @BeforeEach
     void setUp() {
-        orderService = new OrderService(orderRepository, customerRepository);
+        orderService = new OrderService(
+                orderRepository,
+                customerRepository
+        );
     }
 
     @Test
     void createsAnOrderWithCreatedStatus() {
-        Customer customer = new Customer("Faris", "faris@example.com");
+        Customer customer = new Customer(
+                "Faris",
+                "faris@example.com"
+        );
         customer.setId(1L);
-        when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
-        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        OrderResponse createdOrder = orderService.createOrder(
-                new CreateOrderRequest(1L, "Keyboard", 2)
+        when(customerRepository.findById(1L))
+                .thenReturn(Optional.of(customer));
+
+        when(orderRepository.save(any(Order.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        OrderResponse createdOrder =
+                orderService.createOrder(
+                        new CreateOrderRequest(
+                                1L,
+                                "Keyboard",
+                                2
+                        )
+                );
+
+        assertEquals(
+                1L,
+                createdOrder.customerId()
         );
 
-        assertEquals(1L, createdOrder.customerId());
-        assertEquals("Faris", createdOrder.customerName());
-        assertEquals("Keyboard", createdOrder.productName());
-        assertEquals(2, createdOrder.quantity());
-        assertEquals("CREATED", createdOrder.status());
-        verify(orderRepository).save(any(Order.class));
+        assertEquals(
+                "Faris",
+                createdOrder.customerName()
+        );
+
+        assertEquals(
+                "Keyboard",
+                createdOrder.productName()
+        );
+
+        assertEquals(
+                2,
+                createdOrder.quantity()
+        );
+
+        assertEquals(
+                "CREATED",
+                createdOrder.status()
+        );
+
+        verify(orderRepository)
+                .save(any(Order.class));
     }
 
     @Test
     void updatesAnExistingOrder() {
-        Customer customer = new Customer("Faris", "faris@example.com");
+        Customer customer = new Customer(
+                "Faris",
+                "faris@example.com"
+        );
         customer.setId(1L);
-        Order order = new Order(customer, "Keyboard", 2, "CREATED");
-        order.setId(1L);
-        
-        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
-        when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
-        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        OrderResponse updatedOrder = orderService.updateOrder(
-                1L,
-                new UpdateOrderRequest(1L, "Mouse", 1, "PROCESSING")
+        Order order = new Order(
+                customer,
+                "Keyboard",
+                2,
+                "CREATED"
+        );
+        order.setId(1L);
+
+        when(orderRepository.findById(1L))
+                .thenReturn(Optional.of(order));
+
+        when(customerRepository.findById(1L))
+                .thenReturn(Optional.of(customer));
+
+        when(orderRepository.save(any(Order.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        OrderResponse updatedOrder =
+                orderService.updateOrder(
+                        1L,
+                        new UpdateOrderRequest(
+                                1L,
+                                "Mouse",
+                                1,
+                                "PROCESSING"
+                        )
+                );
+
+        assertEquals(
+                "Mouse",
+                updatedOrder.productName()
         );
 
-        assertEquals("Mouse", updatedOrder.productName());
-        assertEquals(1, updatedOrder.quantity());
-        assertEquals("PROCESSING", updatedOrder.status());
+        assertEquals(
+                1,
+                updatedOrder.quantity()
+        );
+
+        assertEquals(
+                "PROCESSING",
+                updatedOrder.status()
+        );
     }
 
     @Test
     void throwsNotFoundWhenOrderDoesNotExist() {
-        when(orderRepository.findById(999L)).thenReturn(Optional.empty());
+        when(orderRepository.findById(999L))
+                .thenReturn(Optional.empty());
 
-        OrderNotFoundException exception = assertThrows(
-                OrderNotFoundException.class,
-                () -> orderService.getOrderById(999L)
+        OrderNotFoundException exception =
+                assertThrows(
+                        OrderNotFoundException.class,
+                        () -> orderService.getOrderById(999L)
+                );
+
+        assertEquals(
+                "Order 999 was not found",
+                exception.getMessage()
         );
-
-        assertEquals("Order 999 was not found", exception.getMessage());
     }
 
     @Test
     void throwsNotFoundWhenCustomerDoesNotExist() {
-        when(customerRepository.findById(999L)).thenReturn(Optional.empty());
+        when(customerRepository.findById(999L))
+                .thenReturn(Optional.empty());
 
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> orderService.createOrder(new CreateOrderRequest(999L, "Keyboard", 2))
+        ResponseStatusException exception =
+                assertThrows(
+                        ResponseStatusException.class,
+                        () -> orderService.createOrder(
+                                new CreateOrderRequest(
+                                        999L,
+                                        "Keyboard",
+                                        2
+                                )
+                        )
+                );
+
+        assertEquals(
+                HttpStatus.NOT_FOUND,
+                exception.getStatusCode()
         );
-
-        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
     }
 
     @Test
     void deletesAnExistingOrder() {
-        Customer customer = new Customer("Faris", "faris@example.com");
+        Customer customer = new Customer(
+                "Faris",
+                "faris@example.com"
+        );
         customer.setId(1L);
-        Order order = new Order(customer, "Keyboard", 2, "CREATED");
-        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+
+        Order order = new Order(
+                customer,
+                "Keyboard",
+                2,
+                "CREATED"
+        );
+
+        when(orderRepository.findById(1L))
+                .thenReturn(Optional.of(order));
 
         orderService.deleteOrder(1L);
 
-        verify(orderRepository).delete(order);
+        verify(orderRepository)
+                .delete(order);
     }
 
     @Test
     void searchesOrdersByStatus() {
-        Customer customer = new Customer("Faris", "search@example.com");
+        Customer customer = new Customer(
+                "Faris",
+                "search@example.com"
+        );
         customer.setId(1L);
 
-        Order order = new Order(customer, "Keyboard", 2, "CREATED");
+        Order order = new Order(
+                customer,
+                "Keyboard",
+                2,
+                "CREATED"
+        );
         order.setId(1L);
 
-        Pageable pageable = PageRequest.of(0, 10);
+        Pageable pageable =
+                PageRequest.of(0, 10);
 
-        when(orderRepository.findByStatus("CREATED", pageable))
-                .thenReturn(new PageImpl<>(List.of(order), pageable, 1));
+        Page<Order> page =
+                new PageImpl<>(
+                        List.of(order),
+                        pageable,
+                        1
+                );
 
-        OrderPageResponse result = orderService.searchOrders(
-                "CREATED",
-                null,
-                pageable
+        when(orderRepository.findAll(
+                any(Specification.class),
+                eq(pageable)
+        )).thenReturn(page);
+
+        OrderPageResponse result =
+                orderService.searchOrders(
+                        "CREATED",
+                        null,
+                        null,
+                        null,
+                        null,
+                        pageable
+                );
+
+        assertEquals(
+                1,
+                result.totalElements()
         );
 
-        assertEquals(1, result.totalElements());
-        assertEquals(1, result.content().size());
-        assertEquals("Keyboard", result.content().get(0).productName());
+        assertEquals(
+                1,
+                result.content().size()
+        );
 
-        verify(orderRepository).findByStatus("CREATED", pageable);
+        assertEquals(
+                "Keyboard",
+                result.content().get(0).productName()
+        );
+
+        assertEquals(
+                "CREATED",
+                result.content().get(0).status()
+        );
+
+        verify(orderRepository)
+                .findAll(
+                        any(Specification.class),
+                        eq(pageable)
+                );
     }
 
     @Test
     void searchesOrdersByCustomerId() {
-        Customer customer = new Customer("Faris", "customer-search@example.com");
+        Customer customer = new Customer(
+                "Faris",
+                "customer-search@example.com"
+        );
         customer.setId(1L);
 
-        Order order = new Order(customer, "Mouse", 1, "CREATED");
+        Order order = new Order(
+                customer,
+                "Mouse",
+                1,
+                "CREATED"
+        );
         order.setId(1L);
 
-        Pageable pageable = PageRequest.of(0, 10);
+        Pageable pageable =
+                PageRequest.of(0, 10);
 
-        when(orderRepository.findByCustomer_Id(1L, pageable))
-                .thenReturn(new PageImpl<>(List.of(order), pageable, 1));
+        Page<Order> page =
+                new PageImpl<>(
+                        List.of(order),
+                        pageable,
+                        1
+                );
 
-        OrderPageResponse result = orderService.searchOrders(
-                null,
-                1L,
-                pageable
+        when(orderRepository.findAll(
+                any(Specification.class),
+                eq(pageable)
+        )).thenReturn(page);
+
+        OrderPageResponse result =
+                orderService.searchOrders(
+                        null,
+                        1L,
+                        null,
+                        null,
+                        null,
+                        pageable
+                );
+
+        assertEquals(
+                1,
+                result.totalElements()
         );
 
-        assertEquals(1, result.totalElements());
-        assertEquals("Mouse", result.content().get(0).productName());
+        assertEquals(
+                "Mouse",
+                result.content().get(0).productName()
+        );
 
-        verify(orderRepository).findByCustomer_Id(1L, pageable);
+        assertEquals(
+                1L,
+                result.content().get(0).customerId()
+        );
+
+        verify(orderRepository)
+                .findAll(
+                        any(Specification.class),
+                        eq(pageable)
+                );
     }
 
     @Test
     void searchesOrdersByCustomerIdAndStatus() {
-        Customer customer = new Customer("Faris", "combined-search@example.com");
+        Customer customer = new Customer(
+                "Faris",
+                "combined-search@example.com"
+        );
         customer.setId(1L);
 
-        Order order = new Order(customer, "Monitor", 1, "PROCESSING");
+        Order order = new Order(
+                customer,
+                "Monitor",
+                1,
+                "PROCESSING"
+        );
         order.setId(1L);
 
-        Pageable pageable = PageRequest.of(0, 10);
+        Pageable pageable =
+                PageRequest.of(0, 10);
 
-        when(orderRepository.findByCustomer_IdAndStatus(
-                1L,
-                "PROCESSING",
-                pageable
-        )).thenReturn(new PageImpl<>(List.of(order), pageable, 1));
+        Page<Order> page =
+                new PageImpl<>(
+                        List.of(order),
+                        pageable,
+                        1
+                );
 
-        OrderPageResponse result = orderService.searchOrders(
-                "PROCESSING",
-                1L,
-                pageable
+        when(orderRepository.findAll(
+                any(Specification.class),
+                eq(pageable)
+        )).thenReturn(page);
+
+        OrderPageResponse result =
+                orderService.searchOrders(
+                        "PROCESSING",
+                        1L,
+                        null,
+                        null,
+                        null,
+                        pageable
+                );
+
+        assertEquals(
+                1,
+                result.totalElements()
         );
 
-        assertEquals(1, result.totalElements());
-        assertEquals("PROCESSING", result.content().get(0).status());
-
-        verify(orderRepository).findByCustomer_IdAndStatus(
-                1L,
-                "PROCESSING",
-                pageable
+        assertEquals(
+                "Monitor",
+                result.content().get(0).productName()
         );
+
+        assertEquals(
+                "PROCESSING",
+                result.content().get(0).status()
+        );
+
+        assertEquals(
+                1L,
+                result.content().get(0).customerId()
+        );
+
+        verify(orderRepository)
+                .findAll(
+                        any(Specification.class),
+                        eq(pageable)
+                );
     }
 
     @Test
     void searchesAllOrdersWhenNoFiltersAreProvided() {
-        Customer customer = new Customer("Faris", "all-search@example.com");
+        Customer customer = new Customer(
+                "Faris",
+                "all-search@example.com"
+        );
         customer.setId(1L);
 
-        Order order = new Order(customer, "Laptop", 1, "CREATED");
+        Order order = new Order(
+                customer,
+                "Laptop",
+                1,
+                "CREATED"
+        );
         order.setId(1L);
 
-        Pageable pageable = PageRequest.of(0, 10);
+        Pageable pageable =
+                PageRequest.of(0, 10);
 
-        when(orderRepository.findAll(pageable))
-                .thenReturn(new PageImpl<>(List.of(order), pageable, 1));
+        Page<Order> page =
+                new PageImpl<>(
+                        List.of(order),
+                        pageable,
+                        1
+                );
 
-        OrderPageResponse result = orderService.searchOrders(
-                null,
-                null,
-                pageable
+        when(orderRepository.findAll(
+                any(Specification.class),
+                eq(pageable)
+        )).thenReturn(page);
+
+        OrderPageResponse result =
+                orderService.searchOrders(
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        pageable
+                );
+
+        assertEquals(
+                1,
+                result.totalElements()
         );
 
-        assertEquals(1, result.totalElements());
-        assertEquals("Laptop", result.content().get(0).productName());
+        assertEquals(
+                "Laptop",
+                result.content().get(0).productName()
+        );
 
-        verify(orderRepository).findAll(pageable);
+        verify(orderRepository)
+                .findAll(
+                        any(Specification.class),
+                        eq(pageable)
+                );
     }
 
     @Test
@@ -255,12 +499,56 @@ class OrderServiceTest {
         List<OrderResponse> result =
                 orderService.getOrdersWithCustomers();
 
-        assertEquals(1, result.size());
+        assertEquals(
+                1,
+                result.size()
+        );
+
         assertEquals(
                 "Service Fetch Customer",
                 result.get(0).customerName()
         );
 
-        verify(orderRepository).findAllWithCustomer();
+        verify(orderRepository)
+                .findAllWithCustomer();
+    }
+
+    @Test
+    void searchesOrdersUsingDynamicFilters() {
+        Pageable pageable =
+                PageRequest.of(0, 20);
+
+        Page<Order> page =
+                new PageImpl<>(
+                        List.of(),
+                        pageable,
+                        0
+                );
+
+        when(orderRepository.findAll(
+                any(Specification.class),
+                eq(pageable)
+        )).thenReturn(page);
+
+        OrderPageResponse result =
+                orderService.searchOrders(
+                        "CREATED",
+                        1L,
+                        "Laptop",
+                        2,
+                        10,
+                        pageable
+                );
+
+        assertEquals(
+                0,
+                result.totalElements()
+        );
+
+        verify(orderRepository)
+                .findAll(
+                        any(Specification.class),
+                        eq(pageable)
+                );
     }
 }

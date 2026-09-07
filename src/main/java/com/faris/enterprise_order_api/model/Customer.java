@@ -10,19 +10,18 @@ import jakarta.persistence.Table;
 @Entity
 @Table(name = "customers")
 public class Customer {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 255)
     private String email;
 
-    // Constructors, getters, and setters
-
-    public Customer() {
+    protected Customer() {
     }
 
     public Customer(String name, String email) {
@@ -42,15 +41,12 @@ public class Customer {
         return name;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
     public String getEmail() {
         return email;
     }
 
-    public void setEmail(String email) {
+    public void update(String name, String email) {
+        this.name = name;
         this.email = email;
     }
 }

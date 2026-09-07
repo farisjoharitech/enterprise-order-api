@@ -43,13 +43,23 @@ public class OrderController {
     public OrderPageResponse searchOrders(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) String productName,
+            @RequestParam(required = false) Integer minimumQuantity,
+            @RequestParam(required = false) Integer maximumQuantity,
             @PageableDefault(
                     size = 20,
                     sort = "id",
                     direction = Sort.Direction.DESC
             ) Pageable pageable
     ) {
-        return orderService.searchOrders(status, customerId, pageable);
+        return orderService.searchOrders(
+                status,
+                customerId,
+                productName,
+                minimumQuantity,
+                maximumQuantity,
+                pageable
+        );
     }
 
     @GetMapping("/with-customers")

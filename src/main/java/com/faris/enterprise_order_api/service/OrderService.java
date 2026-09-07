@@ -16,6 +16,9 @@ import com.faris.enterprise_order_api.dto.OrderPageResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import com.faris.enterprise_order_api.specification.OrderSpecification;
+import org.springframework.data.jpa.domain.Specification;
+
 import java.util.List;
 
 @Service
@@ -48,32 +51,25 @@ public class OrderService {
     public OrderPageResponse searchOrders(
             String status,
             Long customerId,
+            String productName,
+            Integer minimumQuantity,
+            Integer maximumQuantity,
             Pageable pageable
     ) {
-        Page<Order> orders;
+        Specification<Order> specification =
+                Specification
+                        .where(OrderSpecification.hasStatus(status))
+                        .and(OrderSpecification.hasCustomerId(customerId))
+                        .and(OrderSpecification.productNameContains(productName))
+                        .and(OrderSpecification.quantityGreaterThanOrEqualTo(minimumQuantity))
+                        .and(OrderSpecification.quantityLessThanOrEqualTo(maximumQuantity));
 
-        if (customerId != null && status != null) {
-            orders = orderRepository.findByCustomer_IdAndStatus(
-                    customerId,
-                    status,
-                    pageable
-            );
-        } else if (customerId != null) {
-            orders = orderRepository.findByCustomer_Id(
-                    customerId,
-                    pageable
-            );
-        } else if (status != null) {
-            orders = orderRepository.findByStatus(
-                    status,
-                    pageable
-            );
-        } else {
-            orders = orderRepository.findAll(pageable);
-        }
+        Page<Order> orders =
+                orderRepository.findAll(specification, pageable);
 
         return new OrderPageResponse(
-                orders.getContent().stream()
+                orders.getContent()
+                        .stream()
                         .map(this::toResponse)
                         .toList(),
                 orders.getNumber(),

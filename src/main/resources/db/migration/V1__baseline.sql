@@ -1,0 +1,3 @@
+-- Existing schema baseline.
+-- The database was created before Flyway adoption.
+-- Version 1 represents the schema state at the beginning of Day 13.

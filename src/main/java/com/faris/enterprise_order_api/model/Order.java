@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 @Entity
 @Table(name = "orders")
@@ -33,6 +34,10 @@ public class Order {
 
     @Column(nullable = false, length = 30)
     private String status;
+
+    @Version
+    @Column(nullable = false)
+    private Long version;
 
     protected Order() {
     }
@@ -71,6 +76,10 @@ public class Order {
 
     public String getStatus() {
         return status;
+    }
+
+    public Long getVersion() {
+        return version;
     }
 
     public void update(Customer customer, String productName, int quantity, String status) {

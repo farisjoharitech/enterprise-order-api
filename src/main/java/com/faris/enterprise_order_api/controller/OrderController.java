@@ -1,8 +1,6 @@
 package com.faris.enterprise_order_api.controller;
 
-import com.faris.enterprise_order_api.dto.CreateOrderRequest;
-import com.faris.enterprise_order_api.dto.OrderResponse;
-import com.faris.enterprise_order_api.dto.UpdateOrderRequest;
+import com.faris.enterprise_order_api.dto.*;
 import com.faris.enterprise_order_api.service.OrderService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +13,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-import com.faris.enterprise_order_api.dto.OrderPageResponse;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -91,5 +88,10 @@ public class OrderController {
     public ResponseEntity<Void> deleteOrder(@PathVariable Long id) {
         orderService.deleteOrder(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/summaries")
+    public List<OrderSummaryResponse> getOrderSummaries() {
+        return orderService.getOrderSummaries();
     }
 }

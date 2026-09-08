@@ -1,5 +1,6 @@
 package com.faris.enterprise_order_api.repository;
 
+import com.faris.enterprise_order_api.dto.OrderSummaryResponse;
 import com.faris.enterprise_order_api.model.Order;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -35,4 +36,17 @@ public interface OrderRepository
             JOIN FETCH o.customer
             """)
     List<Order> findAllWithCustomer();
+
+    @Query("""
+    SELECT new com.faris.enterprise_order_api.dto.OrderSummaryResponse(
+        o.id,
+        o.productName,
+        o.quantity,
+        o.status,
+        c.name
+    )
+    FROM Order o
+    JOIN o.customer c
+    """)
+    List<OrderSummaryResponse> findOrderSummaries();
 }

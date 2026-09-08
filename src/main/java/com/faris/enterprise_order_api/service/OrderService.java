@@ -1,8 +1,6 @@
 package com.faris.enterprise_order_api.service;
 
-import com.faris.enterprise_order_api.dto.CreateOrderRequest;
-import com.faris.enterprise_order_api.dto.OrderResponse;
-import com.faris.enterprise_order_api.dto.UpdateOrderRequest;
+import com.faris.enterprise_order_api.dto.*;
 import com.faris.enterprise_order_api.exception.OrderNotFoundException;
 import com.faris.enterprise_order_api.model.Customer;
 import com.faris.enterprise_order_api.model.Order;
@@ -12,7 +10,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import com.faris.enterprise_order_api.dto.OrderPageResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -141,4 +138,10 @@ public class OrderService {
                 order.getStatus()
         );
     }
+
+    @Transactional(readOnly = true)
+    public List<OrderSummaryResponse> getOrderSummaries() {
+        return orderRepository.findOrderSummaries();
+    }
+
 }
